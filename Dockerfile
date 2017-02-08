@@ -13,4 +13,4 @@ RUN pip install -r requirements.txt
 EXPOSE 5000
 
 
-CMD command python /app/weatherWeb.py runserver
+CMD command python /app/app/weatherWeb.py runserver
