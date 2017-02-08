@@ -1,0 +1,8 @@
+Flask==0.12
+Flask-script==2.0.5
+Jinja2==2.8
+Flask-Bootstrap==3.3.7.1
+Flask-Moment==0.5.1
+Flask-WTF==0.14.2
+requests==2.11.1
+WTForms==2.1
