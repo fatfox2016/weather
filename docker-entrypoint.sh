@@ -1,4 +1,3 @@
 #!/bin/bash
-# Strict mode
 
-PY_SITE="`python weatherWeb.py runserver`"
+python weatherWeb.py runserver
