@@ -1,4 +1,4 @@
 #!/bin/bash
 
-ls -a /app/app
-python /app/app/weatherWeb.py runserver
+
+python /app/app/weatherWeb.py runserver --host 0.0.0.0
