@@ -16,7 +16,7 @@ moment = Moment(app)
 
 
 class NameForm(FlaskForm):
-    name = StringField('请输入城市中文名称,选择公／英制后，点击查询', validators=[Required()])
+    name = StringField('请输入城市中文名称，选择公／英制后，点击查询', validators=[Required()])
     unit = RadioField('Label', choices=[('value','公制:℃ 摄氏度'),('value_two','英制:℉华氏度')])
     submit = SubmitField('查 询')
 
@@ -109,7 +109,7 @@ def index():
 
 @app.route('/text.html')
 def help():
-    session['Text'] = wAPIT.getText("README.md")
+    session['Text'] = wAPIT.getText("/app/app/README.md")
     return render_template('text.html',Text = session.get('Text'))
 
 
