@@ -1,4 +1,4 @@
 #!/bin/bash
 
-ls  -a /app/app
-PY_SITE="`python /app/app/weatherWeb.py runserver`"
+ls -a /app/app
+python /app/app/weatherWeb.py runserver
