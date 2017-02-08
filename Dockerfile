@@ -14,4 +14,4 @@ RUN chmod +x /usr/local/bin/docker-entrypoint.sh
 EXPOSE 5000
 
 
-CMD command python weatherWeb.py runserver
+CMD command python /app/weatherWeb.py runserver
