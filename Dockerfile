@@ -1,7 +1,7 @@
 FROM daocloud.io/python:3.5
 MAINTAINER weather <wuli4444@163.com>
 
-RUN mkdir -p /app
+RUN COPY . /app
 WORKDIR /app
 
 ADD requirements.txt requirements.txt
