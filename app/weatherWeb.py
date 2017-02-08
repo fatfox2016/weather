@@ -123,4 +123,4 @@ if __name__ == '__main__':
     _query_weather_life = {}
     _query_weather_daily = {}
     _history_List = []
-    manager.run()
+    manager.run(host='0.0.0.0', debug=False)
