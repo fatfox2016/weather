@@ -8,7 +8,7 @@ from wtforms.validators import Required
 import weatherAPIThink as wAPIT
 
 app = Flask(__name__)
-app.config['SECRET_KEY'] = 'hard to guess string'
+app.config['SECRET_KEY'] = 'hard to guess string with fatfox2016'
 
 manager = Manager(app)
 bootstrap = Bootstrap(app)
@@ -123,4 +123,4 @@ if __name__ == '__main__':
     _query_weather_life = {}
     _query_weather_daily = {}
     _history_List = []
-    manager.run()
+    manager.run(host='0.0.0.0')
