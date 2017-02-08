@@ -110,7 +110,7 @@ def index():
 
 @app.route('/text.html')
 def help():
-    session['Text'] = wAPIT.getText('README.md')
+    session['Text'] = wAPIT.getText('／README.md')
     return render_template('text.html',Text = session.get('Text'))
 
 

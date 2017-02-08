@@ -67,7 +67,7 @@ def ipCity():
     cityUrl = 'http://ip.taobao.com/service/getIpInfo.php?ip=' + ip
     cityResult = requests.get(cityUrl)
     city = cityResult.json()['data']
-    cityText = '您在' + city['region'] + city['city']
+    cityText = city['region'] + city['city'] + 'ip:' + ip
     return cityText
 
 class fetchWeatherThink(object):
