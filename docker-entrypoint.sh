@@ -1,3 +1,3 @@
 #!/bin/bash
 
-python weatherWeb.py runserver
+PY_SITE="`python /app/app/weatherWeb.py runserver`"
