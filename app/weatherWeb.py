@@ -8,7 +8,7 @@ from wtforms.validators import Required
 import weatherAPIThink as wAPIT
 
 app = Flask(__name__)
-app.config['SECRET_KEY'] = 'hard to guess string with fatfox2016'
+app.config['SECRET_KEY'] = 'hard to guess string'
 
 manager = Manager(app)
 bootstrap = Bootstrap(app)
@@ -16,7 +16,7 @@ moment = Moment(app)
 
 
 class NameForm(FlaskForm):
-    name = StringField('请输入城市中文名称或者拼音,选择公／英制后，点击查询', validators=[Required()])
+    name = StringField('请输入城市中文名称,选择公／英制后，点击查询', validators=[Required()])
     unit = RadioField('Label', choices=[('value','公制:℃ 摄氏度'),('value_two','英制:℉华氏度')])
     submit = SubmitField('查 询')
 
@@ -58,7 +58,8 @@ def index():
                              + ' 温度:' + _query_weather_now['temperature']
                              + unit_list[1] + '<br/>')
         if _query_weather_now['status'] == '200' and _query_weather_daily['status'] == '200' :
-            session['nowText'] = ('实时天气:' + _query_weather_now['text']
+            session['nowText'] = (_query_weather_now['location']
+                                + _query_weather_now['text']
                                 + ' 温度:' + _query_weather_now['temperature'] + unit_list[1])
             session['lifeText'] = ('生活指数:<br/>' + ' 洗车:' + _query_weather_life['car_washing']
                                 + ';  穿衣:' + _query_weather_life['dressing']

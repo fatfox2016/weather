@@ -1,0 +1,51 @@
+{% extends "base.html" %}
+{% import "bootstrap/wtf.html" as wtf %}
+
+{% block title %}Weather{% endblock %}
+
+{% block page_content %}
+
+<div class="page-header">
+    <h2>Hello,{% if name %}{{ name }}{% else %}开智同侪{% endif %}相约未来! </h2>
+</div>
+
+{{ wtf.quick_form(form) }}
+
+<div >
+    <h3>{% if name %}{{ name }}{% else %}等待您的查询...{% endif %}</h3>
+    <h4>实时天气：</h4>
+    <p>{% if nowText %}{{ nowText|safe }}{% else %}{% endif %}<br/></p>
+    <h4>生活指数：</h4>
+    <p>{{ lifeText|safe }}<br/>
+        {{ daily0Text|safe }}<br/></p>
+</div>
+
+<div >
+    <p>{% if nowImg %}{{ nowImg | safe }}{% else %}<img src= "/static/99.png" />{% endif %}</p>
+
+</div>
+
+<div>
+    <h4>明天天气：</h4>
+    <p>{% if daily1Text %}{{ daily1Text|safe }}{% else %}{% endif %}<br/></p>
+</div>
+
+<div >
+    <p>{% if dailyImg1 %}{{ dailyImg1 | safe }}{% else %}<img src= "/static/99.png" />{% endif %}</p>
+</div>
+
+<div >
+    <h4>后天天气：</h4>
+    <p>{% if daily2Text %}{{ daily2Text|safe }}{% else %}{% endif %}<br/></p>
+</div>
+
+<div >
+    <p>{% if dailyImg2 %}{{ dailyImg2 | safe }}{% else %}<img src= "/static/99.png" />{% endif %}</p>
+</div>
+
+<div >
+    <p>{% if ipText %}{{ ipText }}{% else %}定位中...{% endif %}</p>
+</div>
+{% endblock %}
+
+
