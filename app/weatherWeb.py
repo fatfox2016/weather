@@ -16,7 +16,7 @@ moment = Moment(app)
 
 
 class NameForm(FlaskForm):
-    name = StringField('请输入城市中文名称，选择公／英制后，点击查询', validators=[Required()])
+    name = StringField('请输入城市中文名称或拼音（如拼音相同城市，可在之前加省份和空格，例：anhui fuyang），选择公／英制后，点击查询。', validators=[Required()])
     unit = RadioField('Label', choices=[('value','公制:℃ 摄氏度'),('value_two','英制:℉华氏度')])
     submit = SubmitField('查 询')
 
@@ -46,7 +46,7 @@ def index():
         # ipCity = wAPIT.ipCity()
         session['ipText']  =  wAPIT.ipCity() #'您所在地:' + ipCity['region'] + ipCity['city']
 
-        userInput = form.name.data
+        userInput = form.name.data.strip()
         unit_list = getUnit()
         _query_weather_now = wAPIT.fetchWeatherThink(unit_list[0],userInput).nowDict()
         _query_weather_life = wAPIT.fetchWeatherThink(unit_list[0],userInput).lifeDict()
@@ -57,39 +57,38 @@ def index():
                              + '实时天气:' + _query_weather_now['text']
                              + ' 温度:' + _query_weather_now['temperature']
                              + unit_list[1] + '<br/>')
-        if _query_weather_now['status'] == '200' and _query_weather_daily['status'] == '200' :
-            session['nowText'] = (_query_weather_now['location']
-                                + _query_weather_now['text']
-                                + ' 温度:' + _query_weather_now['temperature'] + unit_list[1])
-            session['lifeText'] = ('生活指数:<br/>' + ' 洗车:' + _query_weather_life['car_washing']
-                                + ';  穿衣:' + _query_weather_life['dressing']
-                                + ';  感冒:' + _query_weather_life['flu']
-                                + ';  运动:' + _query_weather_life['sport']
-                                + ';  旅行:' + _query_weather_life['travel']
-                                + ';  紫外线:' + _query_weather_life['uv'])
-            #today
-            session['daily0Text'] =  ('今日温度:' + _query_weather_daily['low_d0'] + ' ~ '
+
+
+        session['nowText'] = ( _query_weather_now['text']
+                                + '  温度: ' + _query_weather_now['temperature'] + unit_list[1])
+        session['lifeText'] = (' 洗车: ' + _query_weather_life['car_washing']
+                                + ';  穿衣: ' + _query_weather_life['dressing']
+                                + ';  感冒: ' + _query_weather_life['flu']
+                                + ';  运动: ' + _query_weather_life['sport']
+                                + ';  旅行: ' + _query_weather_life['travel']
+                                + ';  紫外线: ' + _query_weather_life['uv'])
+        #today
+        session['daily0Text'] =  ('温度范围: ' + _query_weather_daily['low_d0'] + ' ~ '
 							+ _query_weather_daily['high_d0'] + unit_list[1]
-							+ ' 风向:' + _query_weather_daily['wind_direction_d0']
-							+ ' 风速:' + _query_weather_daily['wind_scale_d0']
+							+ ' 风向: ' + _query_weather_daily['wind_direction_d0']
+							+ ' 风速: ' + _query_weather_daily['wind_scale_d0']
 						  	+ unit_list[2])
-            session['nowImg'] = '<img src= "/static/' + _query_weather_now['code'] + '.png" />'
-            #tommrow
-            session['daily1Text'] =  ('明日温度:' + _query_weather_daily['low_d1'] + ' ~ '
+        session['nowImg'] = '<img src= "/static/' + _query_weather_now['code'] + '.png" />'
+        #tommrow
+        session['daily1Text'] =  ('温度: ' + _query_weather_daily['low_d1'] + ' ~ '
 							+ _query_weather_daily['high_d1'] + unit_list[1]
-							+ ' 风向:' + _query_weather_daily['wind_direction_d1']
-							+ ' 风速:' + _query_weather_daily['wind_scale_d1']
+							+ ' 风向: ' + _query_weather_daily['wind_direction_d1']
+							+ ' 风速: ' + _query_weather_daily['wind_scale_d1']
 						  	+ unit_list[2])
-            session['dailyImg1'] = '<img src= "/static/' + _query_weather_daily['code_day_d1'] + '.png" />'
-			#after tommrow
-            session['daily2Text'] =  ('后日温度:' + _query_weather_daily['low_d2'] + ' ~ '
+        session['dailyImg1'] = '<img src= "/static/' + _query_weather_daily['code_day_d1'] + '.png" />'
+		#after tommrow
+        session['daily2Text']      =  ('温度: ' + _query_weather_daily['low_d2'] + ' ~ '
 							+ _query_weather_daily['high_d2'] + unit_list[2]
-							+ ' 风向:' + _query_weather_daily['wind_direction_d2']
-							+ ' 风速:' + _query_weather_daily['wind_scale_d2']
+							+ ' 风向: ' + _query_weather_daily['wind_direction_d2']
+							+ ' 风速: ' + _query_weather_daily['wind_scale_d2']
 						  	+ unit_list[2])
-            session['dailyImg2'] = '<img src= "/static/' + _query_weather_daily['code_day_d2'] + '.png" />'
-        else:
-            session['text'] = '信息获取有误，请重新输入查询！'
+        session['dailyImg2'] = '<img src= "/static/' + _query_weather_daily['code_day_d2'] + '.png" />'
+
         form.name.data = ''
         return render_template('index.html', form=form,
                                ipText = session.get('ipText'),
