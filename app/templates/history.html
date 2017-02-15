@@ -5,7 +5,15 @@
 
 {% block page_content %}
 <div class="page-header">
-    <h3>Hello, 亲！本站的使用记录：</h3>
+    <h2>Hello, 亲！您和您城市小伙伴的使用记录：</h2>
+</div>
+
+<div >
+    <p>{% if historyText %}{{ yourText | safe }}{% else %}无记录！{% endif %}</p>
+</div>
+
+<div class="page-header">
+    <h2>Hello, 亲！本站的使用记录：</h2>
 </div>
 
 <div >

@@ -1,7 +1,7 @@
 {% extends "base.html" %}
 {% import "bootstrap/wtf.html" as wtf %}
 
-{% block title %}Weather1.1 - fatfox2016{% endblock %}
+{% block title %}Weather2.1 - fatfox2016{% endblock %}
 
 {% block page_content %}
 
@@ -21,26 +21,8 @@
 </div>
 
 <div >
-    <p>{% if nowImg %}{{ nowImg | safe }}{% else %}<img src= "/static/99.png" />{% endif %}</p>
+    <p><img src= "/static/{% if nowImg %}{{ nowImg }}{% else %}99{% endif %}.png" /></p>
 
-</div>
-
-<div>
-    <h4>明天天气：</h4>
-    <p>{% if daily1Text %}{{ daily1Text|safe }}{% else %}{% endif %}<br/></p>
-</div>
-
-<div >
-    <p>{% if dailyImg1 %}{{ dailyImg1 | safe }}{% else %}<img src= "/static/99.png" />{% endif %}</p>
-</div>
-
-<div >
-    <h4>后天天气：</h4>
-    <p>{% if daily2Text %}{{ daily2Text|safe }}{% else %}{% endif %}<br/></p>
-</div>
-
-<div >
-    <p>{% if dailyImg2 %}{{ dailyImg2 | safe }}{% else %}<img src= "/static/99.png" />{% endif %}</p>
 </div>
 
 <div >

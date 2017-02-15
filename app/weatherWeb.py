@@ -1,93 +1,177 @@
-from flask import Flask, render_template, session, redirect, url_for
-from flask_script import Manager
+import os
+import requests
+import re
+from datetime import datetime,date
+from flask import Flask, render_template, session, redirect, url_for, request
+from flask_script import Manager,Shell
 from flask_bootstrap import Bootstrap
 from flask_moment import Moment
 from flask_wtf import FlaskForm
 from wtforms import StringField, RadioField, SubmitField, TextField
 from wtforms.validators import Required
+from flask_sqlalchemy import SQLAlchemy
 import weatherAPIThink as wAPIT
+
+
+basedir = os.path.abspath(os.path.dirname(__file__))
 
 app = Flask(__name__)
 app.config['SECRET_KEY'] = 'hard to guess string'
+app.config['SQLALCHEMY_DATABASE_URI'] = \
+    'sqlite:///' + os.path.join(basedir, 'data.sqlite')
+app.config['SQLALCHEMY_COMMIT_ON_TEARDOWN'] = True
+app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
+
 
 manager = Manager(app)
 bootstrap = Bootstrap(app)
 moment = Moment(app)
+db = SQLAlchemy(app)
+
+
+def make_shell_context():
+    return dict(app=app, db=db, NowTable=NowTable, LifeTable=LifeTable, User = User)
+
+manager.add_command("shell", Shell(make_context=make_shell_context))
+
+class User(db.Model):
+    __tablename__ = 'users'
+    id = db.Column(db.Integer, primary_key = True)
+    name = db.Column(db.String(64))
+    ip = db.Column(db.String(64), unique = True)
+    users = db.relationship('NowTable',backref='user')
+
+class NowTable(db.Model):
+    __tablename__  = 'nowTables'
+    id = db.Column(db.Integer, primary_key = True)
+    location = db.Column(db.String(64)) #unique = True
+    text = db.Column(db.String(64))
+    code = db.Column(db.Integer)
+    temperature = db.Column(db.String(16))
+    unit = db.Column(db.String(16))
+    queryTime = db.Column(db.DateTime,index=True, default=datetime.utcnow)
+    user_name = db.Column(db.String(64),db.ForeignKey('users.name'))
+
+    def __repr__(self):
+        return '<NowTable %r>' % self.location
+
+def insertNowTable(unit,userInput):
+    userList = ipCity()
+    ip = userList[1]
+    name = userList[0]
+    user_name = User.query.filter_by(name=name).first()
+    if user_name is None:
+         user_name = User(name=name,ip=ip)
+
+    API = 'https://api.thinkpage.cn/v3/weather/now.json'
+    result = wAPIT.fetchWeatherThink(unit,userInput).fetchAPIResult(API)
+    r = result.json()['results'][0]
+    location=r['location']['name']
+    unit_list = getUnit()
+    nowInfo = NowTable.query.filter_by(location = location).filter_by(unit = unit).first()
+    if nowInfo is None:
+        nowInfo = NowTable(location=r['location']['name'],
+                           text=r['now']['text'],
+                           temperature=r['now']['temperature'] + unit_list[1],
+                           code=r['now']['code'],
+                           unit=unit,
+                           user=user_name
+                           )
+    else:
+        pass
+    db.session.add(user_name)
+    db.session.add(nowInfo)
+    db.session.commit()
+    return r['location']['name']
+
+class LifeTable(db.Model):
+    __tablename__ = 'lifeTables'
+    id = db.Column(db.Integer, primary_key = True)
+    location = db.Column(db.String(64)) #unique = True
+    car_washing = db.Column(db.String(64))
+    dressing = db.Column(db.String(64))
+    flu = db.Column(db.String(64))
+    sport = db.Column(db.String(64))
+    travel = db.Column(db.String(64))
+    uv = db.Column(db.String(64))
+    queryTime = db.Column(db.DateTime,index=True, default=datetime.utcnow)
+
+    def __repr__(self):
+        return '<LifeTable %r>' % self.location
+
+def insertLifeTable(unit,userInput):
+    r = wAPIT.fetchWeatherThink(unit,userInput).lifeDict()
+    lifeInfo = LifeTable.query.filter_by(location = userInput).first() #
+
+    if lifeInfo is None:
+        lifeInfo = LifeTable(location=r['location'],
+                             car_washing = r['car_washing'],
+                             dressing = r['dressing'],
+                             flu = r['flu'],
+                             sport = r['sport'],
+                             travel = r['travel'],
+                             uv = r['uv']
+                             )
+    else:
+        pass
+    db.session.add(lifeInfo)
+    db.session.commit()
 
 
 class NameForm(FlaskForm):
-    name = StringField('请输入城市中文名称或拼音（如拼音相同城市，可在之前加省份和空格，例：anhui fuyang），选择公／英制后，点击查询。', validators=[Required()])
-    unit = RadioField('Label', choices=[('value','公制:℃ 摄氏度'),('value_two','英制:℉华氏度')])
+    name = StringField(
+            '请输入城市中文名称，选择公／英制后，点击查询。',
+            validators=[Required()])
+    unit = RadioField('unit',
+                      choices=[('℃','公制:℃ 摄氏度'),('℉','英制:℉ 华氏度')],
+                      default = '℃')
     submit = SubmitField('查 询')
-
-# class TextForm(FlaskForm):
-#     text = TextAreaField()
 
 def getUnit():
     form = NameForm()
-    if form.unit.data == 'value_two':
-        unit_list = ['f','℉ 华氏度','mph']
+    if form.unit.data == '℉':
+        unit_list = ['f','℉','mph']
     else:
-        unit_list = ['c','℃ 摄氏度','km/h']
+        unit_list = ['c','℃','km/h']
     return unit_list
 
-@app.errorhandler(404)
-def page_not_found(e):
-    return render_template('404.html'), 404
-
-@app.errorhandler(500)
-def internal_server_error(e):
-    return render_template('500.html'), 500
+def ipCity():
+    ip = request.remote_addr
+    cityUrl = 'http://ip.taobao.com/service/getIpInfo.php?ip=' + ip
+    cityResult = requests.get(cityUrl)
+    city = cityResult.json()['data']
+    cityList = [city['region'] + city['city'],ip]
+    return cityList
 
 @app.route('/', methods=['GET', 'POST'])
 def index():
     form = NameForm()
     if form.validate_on_submit():
-        # ipCity = wAPIT.ipCity()
-        session['ipText']  =  wAPIT.ipCity() #'您所在地:' + ipCity['region'] + ipCity['city']
-
+        session['ipText']  =  ipCity()
         userInput = form.name.data.strip()
         unit_list = getUnit()
-        _query_weather_now = wAPIT.fetchWeatherThink(unit_list[0],userInput).nowDict()
-        _query_weather_life = wAPIT.fetchWeatherThink(unit_list[0],userInput).lifeDict()
-        _query_weather_daily = wAPIT.fetchWeatherThink(unit_list[0],userInput).dailyDict()
-        session['name'] = _query_weather_now['location']
+        insertNowTable(unit_list[0],userInput)
+        insertLifeTable(unit_list[0],userInput)
 
-        _history_List.append(_query_weather_now['location']
-                             + '实时天气:' + _query_weather_now['text']
-                             + ' 温度:' + _query_weather_now['temperature']
-                             + unit_list[1] + '<br/>')
+        now = NowTable.query.filter_by(location=userInput).\
+            filter_by(unit=unit_list[0]).\
+            order_by(db.desc(NowTable.queryTime)).\
+            first()
 
+        life = LifeTable.query.\
+            filter_by(location=userInput).\
+            first()
 
-        session['nowText'] = ( _query_weather_now['text']
-                                + '  温度: ' + _query_weather_now['temperature'] + unit_list[1])
-        session['lifeText'] = (' 洗车: ' + _query_weather_life['car_washing']
-                                + ';  穿衣: ' + _query_weather_life['dressing']
-                                + ';  感冒: ' + _query_weather_life['flu']
-                                + ';  运动: ' + _query_weather_life['sport']
-                                + ';  旅行: ' + _query_weather_life['travel']
-                                + ';  紫外线: ' + _query_weather_life['uv'])
-        #today
-        session['daily0Text'] =  ('温度范围: ' + _query_weather_daily['low_d0'] + ' ~ '
-							+ _query_weather_daily['high_d0'] + unit_list[1]
-							+ ' 风向: ' + _query_weather_daily['wind_direction_d0']
-							+ ' 风速: ' + _query_weather_daily['wind_scale_d0']
-						  	+ unit_list[2])
-        session['nowImg'] = '<img src= "/static/' + _query_weather_now['code'] + '.png" />'
-        #tommrow
-        session['daily1Text'] =  ('温度: ' + _query_weather_daily['low_d1'] + ' ~ '
-							+ _query_weather_daily['high_d1'] + unit_list[1]
-							+ ' 风向: ' + _query_weather_daily['wind_direction_d1']
-							+ ' 风速: ' + _query_weather_daily['wind_scale_d1']
-						  	+ unit_list[2])
-        session['dailyImg1'] = '<img src= "/static/' + _query_weather_daily['code_day_d1'] + '.png" />'
-		#after tommrow
-        session['daily2Text']      =  ('温度: ' + _query_weather_daily['low_d2'] + ' ~ '
-							+ _query_weather_daily['high_d2'] + unit_list[2]
-							+ ' 风向: ' + _query_weather_daily['wind_direction_d2']
-							+ ' 风速: ' + _query_weather_daily['wind_scale_d2']
-						  	+ unit_list[2])
-        session['dailyImg2'] = '<img src= "/static/' + _query_weather_daily['code_day_d2'] + '.png" />'
+        session['name'] = now.location
+
+        session['nowText'] = \
+            (" {}  温度:  {}  ".format(now.text,now.temperature))
+
+        session['lifeText'] = \
+            ("洗车: {};     穿衣: {};     感冒: {};      运动: {};     旅行: {};     紫外线: {}" .\
+                format(life.car_washing,life.dressing,life.flu,life.sport,life.travel,life.uv))
+
+        session['nowImg'] = now.code
 
         form.name.data = ''
         return render_template('index.html', form=form,
@@ -95,12 +179,7 @@ def index():
                                name = session.get('name'),
                                nowText = session.get('nowText'),
                                lifeText = session.get('lifeText'),
-                               daily0Text = session.get('daily0Text'),
-                               nowImg = session.get('nowImg'),
-                               daily1Text = session.get('daily1Text'),
-                               dailyImg1 = session.get('dailyImg1'),
-                               daily2Text = session.get('daily2Text'),
-                               dailyImg2 = session.get('dailyImg2')
+                               nowImg = session.get('nowImg')
                                )
 
     return render_template('index.html', form=form)
@@ -111,15 +190,41 @@ def help():
     session['Text'] = wAPIT.getText("/app/app/README.md")
     return render_template('text.html',Text = session.get('Text'))
 
-
 @app.route('/history.html')
 def history():
+    _your_list=[]
+    userList = ipCity()
+    name = userList[0]
+    your = NowTable.query.filter_by(user_name=name).all()
+    for r in your:
+        yourText = ("{}天气： {}  温度:  {}<br/>".\
+                format(r.location,r.text,r.temperature))
+    session['youtText'] = ' '.join(_your_list)
+
+    _history_List=[]
+    now = NowTable.query.all()
+    for r in now:
+        text = ("{}天气： {}  温度:  {}<br/>".\
+                format(r.location,r.text,r.temperature))
+        _history_List.append(text)
+
     session['historyText'] = ' '.join(_history_List)
-    return render_template('history.html', historyText = session.get('historyText'))
+
+
+    return render_template('history.html',
+                           yourText = session.get('yourtText'),
+                           historyText = session.get('historyText')
+                           )
+
+@app.errorhandler(404)
+def page_not_found(e):
+    return render_template('404.html'), 404
+
+@app.errorhandler(500)
+def internal_server_error(e):
+    return render_template('500.html'), 500
 
 if __name__ == '__main__':
-    _query_weather_now = {}
-    _query_weather_life = {}
-    _query_weather_daily = {}
-    _history_List = []
+    db.drop_all()
+    db.create_all()
     manager.run()

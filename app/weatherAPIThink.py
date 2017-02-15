@@ -71,27 +71,23 @@ def ipCity():
     return cityText
 
 class fetchWeatherThink(object):
-    
+
     def __init__(self,UNIT,inputLocation):
-        self._query_result = {'status':'404', 'message':'无法连接服务器'}
+        self._query_result = {'status':'404'}
         self.KEY = 'cp3kmxnoxvklla8q'
         self.UNIT = UNIT
         self.inputLocation = inputLocation
-#         self.nowDict()
-#         self.dailyDict()
-    
-    def fetchAPIResult(self,API): 
 
+    def fetchAPIResult(self,API):
         _query_params = {
                 'key': self.KEY,
                 'location': self.inputLocation,
                 'language': 'zh-Hans',
                 'unit': self.UNIT
                 }
-        result = requests.get(API, params = _query_params) #timeout = 1?
-
+        result = requests.get(API, params = _query_params)
         return result
-    
+
     def nowDict(self):
         '''Real_time weather forecast'''
         API = 'https://api.thinkpage.cn/v3/weather/now.json'
@@ -99,17 +95,16 @@ class fetchWeatherThink(object):
         if result.status_code == 200:
             r = result.json()['results'][0]
             self._query_result['status'] = '200'
-            self._query_result['message'] = 'yes'
             self._query_result['location'] = r['location']['name']
-            self._query_result['text'] = r['now']['text']
-            self._query_result['code'] = r['now']['code']
-            self._query_result['temperature'] = r['now']['temperature']
             self._query_result['lastUpdate'] = r['last_update']
+            now = r['now']
+            for k,v in now.items():
+                self._query_result[k] = v
         else:
-            self._query_result = {'status':'502', 'message':'查询不到此城市信息'}
+            self._query_result = {'status':'502'}
 
         return self._query_result
-    
+
     def dailyDict(self):
         '''The weather daily'''
         API = 'https://api.thinkpage.cn/v3/weather/daily.json'
@@ -117,44 +112,17 @@ class fetchWeatherThink(object):
         if result.status_code == 200:
             r = result.json()['results'][0]
             self._query_result['status'] = '200'
-            self._query_result['message'] = 'yes'
             self._query_result['location'] = r['location']['name']
             self._query_result['lastUpdate'] = r['last_update']
-            #today
-            self._query_result['date_day_d0'] = r['daily'][0]['date']
-            self._query_result['text_day_d0'] = r['daily'][0]['text_day']
-            self._query_result['text_night_d0'] = r['daily'][0]['text_night']
-            self._query_result['code_day_d0'] = r['daily'][0]['code_day']
-            self._query_result['code_night_d0'] = r['daily'][0]['code_night']
-            self._query_result['low_d0'] = r['daily'][0]['low']
-            self._query_result['high_d0'] = r['daily'][0]['high']
-            self._query_result['wind_direction_d0'] = r['daily'][0]['wind_direction']
-            self._query_result['wind_scale_d0'] = r['daily'][0]['wind_scale']
-            #tomorrow
-            self._query_result['date_day_d1'] = r['daily'][1]['date']
-            self._query_result['text_day_d1'] = r['daily'][1]['text_day']
-            self._query_result['text_night_d1'] = r['daily'][1]['text_night']
-            self._query_result['code_day_d1'] = r['daily'][1]['code_day']
-            self._query_result['code_night_d1'] = r['daily'][1]['code_night']
-            self._query_result['low_d1'] = r['daily'][1]['low']
-            self._query_result['high_d1'] = r['daily'][1]['high']
-            self._query_result['wind_direction_d1'] = r['daily'][1]['wind_direction']
-            self._query_result['wind_scale_d1'] = r['daily'][1]['wind_scale']
-            #after tomorrow
-            self._query_result['date_day_d2'] = r['daily'][2]['date']
-            self._query_result['text_day_d2'] = r['daily'][2]['text_day']
-            self._query_result['text_night_d2'] = r['daily'][2]['text_night']
-            self._query_result['code_day_d2'] = r['daily'][2]['code_day']
-            self._query_result['code_night_d2'] = r['daily'][2]['code_night']
-            self._query_result['low_d2'] = r['daily'][2]['low']
-            self._query_result['high_d2'] = r['daily'][2]['high']
-            self._query_result['wind_direction_d2'] = r['daily'][2]['wind_direction']
-            self._query_result['wind_scale_d2'] = r['daily'][2]['wind_scale']
+            for i in range(3):
+                daily = r['daily'][i]
+                for k,v in daily.items():
+                    k = k + str(i)
+                    self._query_result[k] = v
         else:
-            self._query_result = {'status':'502', 'message':'查询不到此城市信息'}
-
+            self._query_result = {'status':'502'}
         return self._query_result
-        
+
     def lifeDict(self):
         '''Fetch life message'''
         API = 'https://api.thinkpage.cn/v3/life/suggestion.json'
@@ -162,36 +130,11 @@ class fetchWeatherThink(object):
         if result.status_code == 200:
             r = result.json()['results'][0]
             self._query_result['status'] = '200'
-            self._query_result['message'] = 'yes'
             self._query_result['location'] = r['location']['name']
-            self._query_result['car_washing'] = r['suggestion']['car_washing']['brief'] # 洗车
-            self._query_result['dressing'] = r['suggestion']['dressing']['brief'] #穿衣
-            self._query_result['flu'] = r['suggestion']['flu']['brief'] #感冒
-            self._query_result['sport'] = r['suggestion']['sport']['brief'] #运动
-            self._query_result['travel'] = r['suggestion']['travel']['brief'] #旅行
-            self._query_result['uv'] = r['suggestion']['uv']['brief'] #紫外线
             self._query_result['lastUpdate'] = r['last_update']
+            suggestion = r['suggestion']
+            for k,v in suggestion.items():
+                self._query_result[k] = v['brief']
         else:
-            self._query_result = {'status':'502', 'message':'查询不到此城市信息'}
-
+            self._query_result = {'status':'502'}
         return self._query_result
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
