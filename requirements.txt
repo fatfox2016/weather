@@ -7,4 +7,3 @@ Flask-WTF==0.14.2
 requests==2.11.1
 WTForms==2.1
 Flsak-SQLAlchemy==2.1
-SQLite==3.14.0
