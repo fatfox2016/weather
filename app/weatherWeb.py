@@ -1,6 +1,7 @@
 import os
 import requests
 import re
+import socket
 from datetime import datetime,date
 from flask import Flask, render_template, session, redirect, url_for, request
 from flask_script import Manager,Shell
@@ -136,7 +137,7 @@ def getUnit():
     return unit_list
 
 def ipCity():
-    ip = request.remote_addr
+    ip = socket.gethostbyname(socket.getfqdn())
     cityUrl = 'http://ip.taobao.com/service/getIpInfo.php?ip=' + ip
     cityResult = requests.get(cityUrl)
     city = cityResult.json()['data']
@@ -204,17 +205,16 @@ def history():
     _history_List=[]
     now = NowTable.query.all()
     for r in now:
-        text = ("{}天气： {}  温度:  {}<br/>".\
-                format(r.location,r.text,r.temperature))
+        text = ("{}天气： {}  温度:  {}  天气代码：{} {}<br/>".\
+                format(r.location,r.text,r.temperature,r.code,r.user_name))
         _history_List.append(text)
 
     session['historyText'] = ' '.join(_history_List)
 
 
     return render_template('history.html',
-                           yourText = session.get('yourtText'),
                            historyText = session.get('historyText')
-                           )
+                           ) #yourText = session.get('yourtText'),
 
 @app.errorhandler(404)
 def page_not_found(e):
