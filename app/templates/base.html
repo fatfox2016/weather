@@ -25,20 +25,29 @@
                 <li><a href="/history.html">历史记录</a></li>
             </ul>
             <ul class="nav navbar-nav">
-                <li><a href="/text.html">帮  助</a></li>
+                <li><a href="/text.html">更改信息</a></li>
+            </ul>
+            <ul class="nav navbar-nav">
+                <li><a href="/help.html">帮    助</a></li>
             </ul>
         </div>
     </div>
 </div>
+
+
 {% endblock %}
 
-{% block content %}
-<div class="container">
-    {% block page_content %}{% endblock %}
+{% block content %} <div class="container">
+{% for message in get_flashed_messages() %} <div class="alert alert-warning">
+             <button type="button" class="close" data-dismiss="alert">&times;</button>
+             {{ message }}
 </div>
+{% endfor %}
+{% block page_content %}{% endblock %} </div>
 {% endblock %}
 
 {% block scripts %}
 {{ super() }}
 {{ moment.include_moment() }}
 {% endblock %}
+

@@ -3,13 +3,13 @@ import requests
 import re
 import socket
 from datetime import datetime,date
-from flask import Flask, render_template, session, redirect, url_for, request
+from flask import Flask, render_template, session, redirect, url_for, request,flash
 from flask_script import Manager,Shell
 from flask_bootstrap import Bootstrap
 from flask_moment import Moment
 from flask_wtf import FlaskForm
-from wtforms import StringField, RadioField, SubmitField, TextField
-from wtforms.validators import Required
+from wtforms import StringField, RadioField, SubmitField
+from wtforms.validators import Required,AnyOf,NumberRange,Optional
 from flask_sqlalchemy import SQLAlchemy
 import weatherAPIThink as wAPIT
 
@@ -64,17 +64,15 @@ def insertNowTable(unit,userInput):
     if user_name is None:
          user_name = User(name=name,ip=ip)
 
-    API = 'https://api.thinkpage.cn/v3/weather/now.json'
-    result = wAPIT.fetchWeatherThink(unit,userInput).fetchAPIResult(API)
-    r = result.json()['results'][0]
-    location=r['location']['name']
+    r = wAPIT.fetchWeatherThink(unit,userInput).nowDict()
+    location=r['location']
     unit_list = getUnit()
     nowInfo = NowTable.query.filter_by(location = location).filter_by(unit = unit).first()
     if nowInfo is None:
-        nowInfo = NowTable(location=r['location']['name'],
-                           text=r['now']['text'],
-                           temperature=r['now']['temperature'] + unit_list[1],
-                           code=r['now']['code'],
+        nowInfo = NowTable(location=r['location'],
+                           text=r['text'],
+                           temperature=r['temperature'] + unit_list[1],
+                           code=r['code'],
                            unit=unit,
                            user=user_name
                            )
@@ -83,7 +81,6 @@ def insertNowTable(unit,userInput):
     db.session.add(user_name)
     db.session.add(nowInfo)
     db.session.commit()
-    return r['location']['name']
 
 class LifeTable(db.Model):
     __tablename__ = 'lifeTables'
@@ -118,7 +115,6 @@ def insertLifeTable(unit,userInput):
     db.session.add(lifeInfo)
     db.session.commit()
 
-
 class NameForm(FlaskForm):
     name = StringField(
             '请输入城市中文名称，选择公／英制后，点击查询。',
@@ -144,52 +140,69 @@ def ipCity():
     cityList = [city['region'] + city['city'],ip]
     return cityList
 
+def validateInput(unit,userInput):
+    '''Validate the input text effectively'''
+    nowInfo = NowTable.query.filter_by(location = userInput).filter_by(unit = unit).first()
+    if nowInfo is None:
+        r = wAPIT.fetchWeatherThink(unit,userInput).nowDict()
+        if r['status'] != '200':
+            flash('因网络问题，您查询的结果走丢了！')
+            return False
+        else:
+            insertNowTable(unit,userInput)
+            insertLifeTable(unit,userInput)
+            return True
+    else:
+        return True
+
 @app.route('/', methods=['GET', 'POST'])
 def index():
     form = NameForm()
     if form.validate_on_submit():
         session['ipText']  =  ipCity()
         userInput = form.name.data.strip()
+        if re.match(r'[0-9a-zA-Z\_]',userInput):
+            flash('请输入城市中文名称！')
         unit_list = getUnit()
-        insertNowTable(unit_list[0],userInput)
-        insertLifeTable(unit_list[0],userInput)
+        if validateInput(unit_list[0],userInput) is True:
 
-        now = NowTable.query.filter_by(location=userInput).\
-            filter_by(unit=unit_list[0]).\
-            order_by(db.desc(NowTable.queryTime)).\
-            first()
+            now = NowTable.query.filter_by(location=userInput).\
+                filter_by(unit=unit_list[0]).\
+                order_by(db.desc(NowTable.queryTime)).\
+                first()
 
-        life = LifeTable.query.\
-            filter_by(location=userInput).\
-            first()
+            life = LifeTable.query.\
+                filter_by(location=userInput).\
+                first()
 
-        session['name'] = now.location
+            session['name'] = now.location
 
-        session['nowText'] = \
-            (" {}  温度:  {}  ".format(now.text,now.temperature))
+            session['nowText'] = \
+                    (" {}  温度:  {}  ".format(now.text,now.temperature))
 
-        session['lifeText'] = \
-            ("洗车: {};     穿衣: {};     感冒: {};      运动: {};     旅行: {};     紫外线: {}" .\
-                format(life.car_washing,life.dressing,life.flu,life.sport,life.travel,life.uv))
+            session['lifeText'] = \
+                    ("洗车: {};     穿衣: {};     感冒: {};      运动: {};     旅行: {};     紫外线: {}" .\
+                        format(life.car_washing,life.dressing,life.flu,life.sport,life.travel,life.uv))
 
-        session['nowImg'] = now.code
+            session['nowImg'] = ("<img src= \"/static/{}.png \" />".format(now.code))
 
-        form.name.data = ''
-        return render_template('index.html', form=form,
-                               ipText = session.get('ipText'),
-                               name = session.get('name'),
-                               nowText = session.get('nowText'),
-                               lifeText = session.get('lifeText'),
-                               nowImg = session.get('nowImg')
-                               )
+            form.name.data = ''
+            return render_template('index.html', form=form,
+                                    ipText = session.get('ipText'),
+                                    name = session.get('name'),
+                                    nowImg = session.get('nowImg'),
+                                    nowText = session.get('nowText'),
+                                    lifeText = session.get('lifeText'))
+
+        return render_template('index.html', form=form)
 
     return render_template('index.html', form=form)
 
 
-@app.route('/text.html')
+@app.route('/help.html')
 def help():
-    session['Text'] = wAPIT.getText("/app/app/README.md")
-    return render_template('text.html',Text = session.get('Text'))
+    session['help'] = wAPIT.getText("/app/app/README.md")
+    return render_template('help.html',Text = session.get('help'))
 
 @app.route('/history.html')
 def history():
@@ -223,6 +236,37 @@ def page_not_found(e):
 @app.errorhandler(500)
 def internal_server_error(e):
     return render_template('500.html'), 500
+
+
+class InfoForm(FlaskForm):
+    location = StringField(
+            '请输入城市中文名称：',
+            validators=[Required()])
+    text = StringField(
+            '请输入天气情况，例如：\'晴\'、\'多云\'、\'阴\'、\'小雨\'、\'大雪\'等。',
+            validators=[AnyOf(values=['晴','多云','阴','小雨','大雨',
+                                      '中雨','大雪','小雪','中雪','雾'
+                                      ], message='输入错误，请按提示输入'),Optional()])
+    temperature = StringField(
+            '请输入温度及单位（℃或℉)',validators=[Optional()])
+
+    code = StringField('请输入气象代码',validators=[Optional()]) #validators=[NumberRange(0-38)],
+
+    submit = SubmitField('提交更正')
+
+
+@app.route('/text.html', methods=['GET', 'POST'])
+def modify():
+    form = InfoForm()
+    if form.validate_on_submit():
+        location = form.location.data.strip()
+        text = form.text.data.strip()
+        temperature = form.temperature.data.strip()
+        code = form.code.data.strip()
+        print(location,text,temperature)#,code)
+        flash('修改成功，请再次查询')
+
+    return render_template('text.html', form=form)
 
 if __name__ == '__main__':
     db.drop_all()

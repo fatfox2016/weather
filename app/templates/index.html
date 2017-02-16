@@ -21,7 +21,7 @@
 </div>
 
 <div >
-    <p><img src= "/static/{% if nowImg %}{{ nowImg }}{% else %}99{% endif %}.png" /></p>
+    <p>{% if nowImg %}{{ nowImg | safe }}{% else %}<img src= "/static/99.png" />{% endif %}</p>
 
 </div>
 
