@@ -8,8 +8,8 @@ from flask_script import Manager,Shell
 from flask_bootstrap import Bootstrap
 from flask_moment import Moment
 from flask_wtf import FlaskForm
-from wtforms import StringField, RadioField, SubmitField
-from wtforms.validators import Required,AnyOf,NumberRange,Optional
+from wtforms import StringField, RadioField, SubmitField,IntegerField
+from wtforms.validators import Required,AnyOf,NumberRange,Optional,Regexp
 from flask_sqlalchemy import SQLAlchemy
 import weatherAPIThink as wAPIT
 
@@ -198,7 +198,6 @@ def index():
 
     return render_template('index.html', form=form)
 
-
 @app.route('/help.html')
 def help():
     session['help'] = wAPIT.getText("/app/app/README.md")
@@ -237,7 +236,6 @@ def page_not_found(e):
 def internal_server_error(e):
     return render_template('500.html'), 500
 
-
 class InfoForm(FlaskForm):
     location = StringField(
             '请输入城市中文名称：',
@@ -247,24 +245,69 @@ class InfoForm(FlaskForm):
             validators=[AnyOf(values=['晴','多云','阴','小雨','大雨',
                                       '中雨','大雪','小雪','中雪','雾'
                                       ], message='输入错误，请按提示输入'),Optional()])
-    temperature = StringField(
-            '请输入温度及单位（℃或℉)',validators=[Optional()])
-
-    code = StringField('请输入气象代码',validators=[Optional()]) #validators=[NumberRange(0-38)],
+    # temperature = StringField(
+    #         '请输入温度及单位（℃或℉)',validators=[Optional()])
+    #
+    # code = IntegerField('请输入气象代码(范围0-38的整数)',
+    #                    validators=[NumberRange(
+    #                            min=0,max=38,message = '输入错误，请按提示输入'),
+    #                    Optional()]
+    #                    ) #NumberRange(min=0,max=38),
 
     submit = SubmitField('提交更正')
 
+# def updataNowTable(location,line,Info):
+#     nowInfoC = NowTable.query.filter_by(location = location).filter_by(unit = 'c').first()
+#     nowInfoF = NowTable.query.filter_by(location = location).filter_by(unit = 'f').first()
+#     if nowInfoC is not None:
+#         nowInfoC.line = (Info)
+#         db.session.add(nowInfoC)
+#     if nowInfoF is not None:
+#         nowInfoF.line = (Info)
+#         db.session.add(nowInfoF)
+#     db.session.commit()
 
 @app.route('/text.html', methods=['GET', 'POST'])
 def modify():
     form = InfoForm()
     if form.validate_on_submit():
         location = form.location.data.strip()
-        text = form.text.data.strip()
-        temperature = form.temperature.data.strip()
-        code = form.code.data.strip()
-        print(location,text,temperature)#,code)
+
+        nowText = form.text.data
+        if nowText != '':
+            # updataNowTable(location,'text',nowText)
+            nowInfoC = NowTable.query.filter_by(location = location).filter_by(unit = 'c').first()
+            nowInfoF = NowTable.query.filter_by(location = location).filter_by(unit = 'f').first()
+            print(nowInfoF)
+            print(nowInfoC)
+            if nowInfoC is not None:
+                nowInfoC.text = (nowText)
+                db.session.add(nowInfoC)
+            if nowInfoF is not None:
+                nowInfoF.text = (nowText)
+                db.session.add(nowInfoF)
+            db.session.commit()
+
+        # temperatureText = form.temperature.data
+        # if temperatureText != '':
+        #     updataNowTable(location,'temperature',temperatureText)
+        #
+        # codeInt = form.code.data
+        # if codeInt != '':
+        #     updataNowTable(location,'code',codeInt)
+
         flash('修改成功，请再次查询')
+        C = NowTable.query.filter_by(location = location).filter_by(unit = 'c').first()
+        F = NowTable.query.filter_by(location = location).filter_by(unit = 'f').first()
+        if C is not None:
+            session['textC'] = ("公制数据：{}天气： {}  温度:  {}  天气代码：{} {}<br/>".\
+                    format(C.location,C.text,C.temperature,C.code,C.user_name))
+        if F is not None:
+            session['textF'] = ("英制数据：{}天气： {}  温度:  {}  天气代码：{} {}<br/>".\
+                    format(F.location,F.text,F.temperature,F.code,F.user_name))
+        return render_template('text.html', form=form,
+                               textC = session.get('textC'),
+                               textF = session.get('textF'))
 
     return render_template('text.html', form=form)
 

@@ -3,10 +3,21 @@
 
 {% block title %}Modify Information{% endblock %}
 
+<div class="page-header">
+    <h2>Hello, 亲！欢迎您的帮助！</h2>
+</div>
 
 {% block page_content %}
 
 
 {{ wtf.quick_form(form) }}
 
+
+<div >
+    <p>{% if textC %}{{ textC | safe }}{% else %}{% endif %}</p>
+</div>
+
+<div >
+    <p>{% if textF %}{{ textF | safe }}{% else %}{% endif %}</p>
+</div>
 {% endblock %}
