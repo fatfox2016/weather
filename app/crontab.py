@@ -14,6 +14,7 @@ def crawler():
         print('lose')
 
 if __name__ == '__main__':
+    print('API crawler')
     sched = BlockingScheduler()
     sched.add_job(crawler, 'interval', seconds=10)
     sched.start()
