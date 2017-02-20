@@ -16,5 +16,5 @@ def crawler():
 if __name__ == '__main__':
     print('API crawler')
     sched = BlockingScheduler()
-    sched.add_job(crawler, 'interval', seconds=10)
+    sched.add_job(crawler, 'interval', seconds=300)
     sched.start()

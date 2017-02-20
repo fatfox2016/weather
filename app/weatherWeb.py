@@ -117,7 +117,7 @@ def index():
 
 @app.route('/help.html')
 def help():
-    session['help'] = wAPIT.getText("\app\app\README.md")
+    session['help'] = wAPIT.getText("／app／app／README.md")
     return render_template('help.html',Text = session.get('help'))
 
 @app.route('/history.html')
