@@ -1,3 +1,4 @@
+import os
 import requests
 import re
 import socket
@@ -11,6 +12,7 @@ from wtforms.validators import Required,AnyOf,NumberRange,Optional,Regexp
 import weatherAPIThink as wAPIT
 from database import CityTable,NowTable,LifeTable,insertCityTable,insertNowTable,insertLifeTable,updataNowTable,db
 
+textdir = os.path.abspath(os.path.dirname(__file__))
 
 app = Flask(__name__)
 app.config['SECRET_KEY'] = 'hard to guess string'
@@ -56,6 +58,7 @@ def validateInput(unit,userInput):
     nowInfo = NowTable.query.filter_by(location = userInput).filter_by(unit = unit).first()
     if nowInfo is None:
         r = wAPIT.fetchWeatherThink(unit,userInput).nowDict()
+        print(r)
         if r['status'] != '200':
             flash('因网络问题，您查询的结果走丢了！')
             return False
@@ -117,7 +120,8 @@ def index():
 
 @app.route('/help.html')
 def help():
-    session['help'] = wAPIT.getText("／app／app／README.md")
+    text = os.path.join(textdir, 'README.md')
+    session['help'] = wAPIT.getText(text)
     return render_template('help.html',Text = session.get('help'))
 
 @app.route('/history.html')
