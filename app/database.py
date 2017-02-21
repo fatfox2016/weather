@@ -1,7 +1,6 @@
 import os
 import requests
 import re
-import socket
 from datetime import datetime,date
 from flask import Flask, render_template, session, redirect, url_for, request,flash
 # from flask_script import Manager,Shell
@@ -14,13 +13,11 @@ basedir = os.path.abspath(os.path.dirname(__file__))
 
 
 app = Flask(__name__)
-# app.config['SECRET_KEY'] = 'hard to guess string'
 app.config['SQLALCHEMY_DATABASE_URI'] = \
     'sqlite:///' + os.path.join(basedir, 'data.sqlite')
 app.config['SQLALCHEMY_COMMIT_ON_TEARDOWN'] = True
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 
-# moment = Moment(app)
 db = SQLAlchemy(app)
 
 
@@ -111,6 +108,28 @@ def updataNowTable(location,Info):
         db.session.add(nowInfoC)
     if nowInfoF is not None:
         nowInfoF.text = (Info)
+        db.session.add(nowInfoF)
+    db.session.commit()
+
+def updataNowTableT(location,Info):
+    nowInfoC = NowTable.query.filter_by(location = location).filter_by(unit = 'c').first()
+    nowInfoF = NowTable.query.filter_by(location = location).filter_by(unit = 'f').first()
+    if nowInfoC is not None:
+        nowInfoC.temperature = (Info)
+        db.session.add(nowInfoC)
+    if nowInfoF is not None:
+        nowInfoF.temperature = (Info)
+        db.session.add(nowInfoF)
+    db.session.commit()
+
+def updataNowTableC(location,Info):
+    nowInfoC = NowTable.query.filter_by(location = location).filter_by(unit = 'c').first()
+    nowInfoF = NowTable.query.filter_by(location = location).filter_by(unit = 'f').first()
+    if nowInfoC is not None:
+        nowInfoC.code = (Info)
+        db.session.add(nowInfoC)
+    if nowInfoF is not None:
+        nowInfoF.code = (Info)
         db.session.add(nowInfoF)
     db.session.commit()
 

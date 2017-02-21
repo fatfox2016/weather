@@ -10,7 +10,7 @@ from flask_wtf import FlaskForm
 from wtforms import StringField, RadioField, SubmitField,IntegerField
 from wtforms.validators import Required,AnyOf,NumberRange,Optional,Regexp
 import weatherAPIThink as wAPIT
-from database import CityTable,NowTable,LifeTable,insertCityTable,insertNowTable,insertLifeTable,updataNowTable,db
+from database import CityTable,NowTable,LifeTable,insertCityTable,insertNowTable,insertLifeTable,updataNowTable,updataNowTableT,updataNowTableC,db
 
 textdir = os.path.abspath(os.path.dirname(__file__))
 
@@ -33,13 +33,13 @@ class NameForm(FlaskForm):
             '请输入城市中文名称，选择公／英制后，点击查询。',
             validators=[Required()])
     unit = RadioField('unit',
-                      choices=[('℃','公制:℃ 摄氏度'),('℉','英制:℉ 华氏度')],
-                      default = '℃')
+                      choices=[('c','公制:℃ 摄氏度'),('f','英制:℉ 华氏度')],
+                      default = 'c')
     submit = SubmitField('查 询')
 
 def getUnit():
     form = NameForm()
-    if form.unit.data == '℉':
+    if form.unit.data == 'f':
         unit_list = ['f','℉','mph']
     else:
         unit_list = ['c','℃','km/h']
@@ -170,14 +170,18 @@ class InfoForm(FlaskForm):
             validators=[AnyOf(values=['晴','多云','阴','小雨','大雨',
                                       '中雨','大雪','小雪','中雪','雾'
                                       ], message='输入错误，请按提示输入'),Optional()])
-    # temperature = StringField(
-    #         '请输入温度及单位（℃或℉)',validators=[Optional()])
-    #
-    # code = IntegerField('请输入气象代码(范围0-38的整数)',
-    #                    validators=[NumberRange(
-    #                            min=0,max=38,message = '输入错误，请按提示输入'),
-    #                    Optional()]
-    #                    ) #NumberRange(min=0,max=38),
+    temperature = StringField(
+            '请输入温度',validators=[Optional()])
+
+    # unit = RadioField('unit',
+    #                   choices=[('c','公制:℃ 摄氏度'),('f','英制:℉ 华氏度')],
+    #                   default = 'c')
+
+    code = IntegerField('请输入气象代码(范围0-38的整数)',
+                       validators=[NumberRange(
+                               min=0,max=38,message = '输入错误，请按提示输入'),
+                       Optional()]
+                       ) #NumberRange(min=0,max=38),
 
     submit = SubmitField('提交更正')
 
@@ -191,26 +195,15 @@ def modify():
 
         nowText = form.text.data
         if nowText != '':
-            updataNowTable(location,nowText)
-            # nowInfoC = NowTable.query.filter_by(location = location).filter_by(unit = 'c').first()
-            # nowInfoF = NowTable.query.filter_by(location = location).filter_by(unit = 'f').first()
-            # print(nowInfoF)
-            # print(nowInfoC)
-            # if nowInfoC is not None:
-            #     nowInfoC.text = (nowText)
-            #     db.session.add(nowInfoC)
-            # if nowInfoF is not None:
-            #     nowInfoF.text = (nowText)
-            #     db.session.add(nowInfoF)
-            # db.session.commit()
+            updataNowTableText(location,nowText)
 
-        # temperatureText = form.temperature.data
-        # if temperatureText != '':
-        #     updataNowTable(location,'temperature',temperatureText)
-        #
-        # codeInt = form.code.data
-        # if codeInt != '':
-        #     updataNowTable(location,'code',codeInt)
+        temperatureText = form.temperature.data
+        if temperatureText != '':
+            updataNowTableT(location,temperatureText)
+
+        codeInt = form.code.data
+        if codeInt is not None:
+            updataNowTableC(location,codeInt)
 
         flash('修改成功，请再次查询')
         C = NowTable.query.filter_by(location = location).filter_by(unit = 'c').first()
