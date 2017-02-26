@@ -1,0 +1,77 @@
+{% extends "base.html" %}
+{% import "bootstrap/wtf.html" as wtf %}
+
+{% block title %}Weather2.1 - fatfox2016{% endblock %}
+
+{% block page_content %}
+
+<div class="page-header">
+    <h2>Hello,{% if name %}{{ name }}{% else %}开智同侪{% endif %}! 相约未来! </h2>
+</div>
+
+{{ wtf.quick_form(form) }}
+
+<div >
+    {% if now %}
+    <div><h3>{{ now.location }}</h3>
+        <p>
+            <span>
+               天气信息：{{ now.text }}</br>
+               温度：{{ now.temperature }}
+               {% if now.temperatureUnit == 'c' %}&degC{% elif now.temperatureUnit == 'f' %}&degF{% endif %}<br/>
+            </span>
+            <span><img src= "/static/{{ now.code }}.png" ></span>
+        </p>
+    </div>
+    {% endif %}
+    {% if life %}
+    <div class="panel panel-default">
+        <div class="panenl-heading">
+           <h4>&nbsp&nbsp生活指数：</h4>
+        </div>
+        <table class="table table-striped"">
+            {% for key,value in life.items() %}
+            <tr>
+                <th>{{ key }}</th>
+                <td>{{ value|join('') }}</td>
+            </tr>
+            {% endfor %}
+        </table>
+    </div>
+    {% endif %}
+    {% if daily %}
+    <div><h3>{{ daily.location }}</h3>
+        <table class="table">
+        <tr>
+            <td>&nbsp&nbsp&nbsp&nbsp</td>
+            <td>白天天气</td>
+            <td>晚间天气</td>
+            <td>温度</td>
+            <td>风向</td>
+            <td>风速</td>
+            <td>风力等级</td>
+        </tr>
+        {% if daily %}
+            {% for r in daily %}
+            <tr>
+                <td>{% if r.day == 0 %}今天{% elif r.day == 1 %}明天{% elif r.day == 2 %}后天{% endif %}</td>
+                <td>{{ r.text_day }}</td>
+                <td>{{ r.text_night }}</td>
+                <td>{{ r.low }}&nbsp~&nbsp{{ r.high }}
+                    {% if r.temperatureUnit == 'c' %}&degC{% elif r.temperatureUnit == 'f' %}&degF{% endif %}
+                </td>
+                <td>{{ r.wind_direction }}:{{ r.wind_direction_degree }}度</td>
+                <td>{{ r.wind_speed }}
+                    {% if r.windUnit == 'c' %}km/h{% elif r.windUnit == 'f' %}mph{% endif %}
+                </td>
+                <td>{{ r.wind_scale }}</td>
+            </tr>
+            {% endfor %}
+        {% endif %}
+    </table>
+    </div>
+    {% endif %}
+</div>
+{% endblock %}
+
+

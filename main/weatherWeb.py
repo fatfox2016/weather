@@ -166,18 +166,18 @@ class InfoForm(FlaskForm):
             '请输入城市中文名称：',
             validators=[Required()])
     text = StringField(
-            '请输入天气情况，例如：\'晴\'、\'多云\'、\'阴\'、\'小雨\'、\'大雪\'等。',
+            '请输入天气情况：(例如：\'晴\'、\'多云\'、\'阴\'、\'小雨\'、\'大雪\'等)',
             validators=[AnyOf(values=['晴','多云','阴','小雨','大雨',
                                       '中雨','大雪','小雪','中雪','雾'
                                       ], message='输入错误，请按提示输入'),Optional()])
     temperature = StringField(
-            '请输入温度',validators=[Optional()])
+            '请输入温度：',validators=[Optional()])
 
     # unit = RadioField('unit',
     #                   choices=[('c','公制:℃ 摄氏度'),('f','英制:℉ 华氏度')],
     #                   default = 'c')
 
-    code = IntegerField('请输入气象代码(范围0-38的整数)',
+    code = IntegerField('请输入气象代码：(范围0-38的整数)',
                        validators=[NumberRange(
                                min=0,max=38,message = '输入错误，请按提示输入'),
                        Optional()]

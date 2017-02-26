@@ -8,7 +8,7 @@ def crawler():
         for r in city:
             c = r.name
             insertNowTable('c',r.name)
-            insertNowTable('f',r.name)
+            insertNowTable('F',r.name)
             print(c)
     else:
         print('lose')

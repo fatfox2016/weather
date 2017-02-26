@@ -1,0 +1,38 @@
+{% extends "base.html" %}
+{% import "bootstrap/wtf.html" as wtf %}
+
+{% block title %}Modify Information{% endblock %}
+
+<div class="page-header">
+    <h2>Hello, 亲！感谢您的帮助！</h2>
+</div>
+
+{% block page_content %}
+
+
+{{ wtf.quick_form(form) }}
+
+
+<div>{% if now %}
+    <table class="table">
+        <tr>
+            <td>ID</td>
+            <td>城市</td>
+            <td>天气</td>
+            <td>温度</td>
+            <td>天气代码</td>
+        </tr>
+        <tr>
+            <td>{{ now.id }}</td>
+            <td>{{ now.location }}</td>
+            <td>{{ now.text }}</td>
+            <td>{{ now.temperature }}
+                {% if now.temperatureUnit == 'c' %}&degC
+                {% elif now.temperatureUnit == 'f' %}&degF
+                {% endif %}</td>
+            <td>{{ now.code }}</td>
+        </tr>
+    </table>
+    {% endif %}
+</div>
+{% endblock %}
