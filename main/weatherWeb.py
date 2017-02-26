@@ -1,229 +1,107 @@
 import os
-import requests
 import re
-import socket
-from flask import Flask, render_template, session, redirect, url_for, request,flash
-from flask_script import Manager,Shell
-from flask_bootstrap import Bootstrap
-from flask_moment import Moment
-from flask_wtf import FlaskForm
-from wtforms import StringField, RadioField, SubmitField,IntegerField
-from wtforms.validators import Required,AnyOf,NumberRange,Optional,Regexp
-import weatherAPIThink as wAPIT
-from database import CityTable,NowTable,LifeTable,insertCityTable,insertNowTable,insertLifeTable,updataNowTable,updataNowTableT,updataNowTableC,db
+from flask import Flask, render_template, session, redirect, url_for, request,flash,Blueprint
+from main.forms import NameForm,ModifyForm
+from main.database import NowModel,DailyModel,HistoryModel
 
 textdir = os.path.abspath(os.path.dirname(__file__))
+main = Blueprint('main',__name__)
 
-app = Flask(__name__)
-app.config['SECRET_KEY'] = 'hard to guess string'
-
-manager = Manager(app)
-bootstrap = Bootstrap(app)
-moment = Moment(app)
-
-
-def make_shell_context():
-    return dict(app=app, db=db, NowTable=NowTable, LifeTable=LifeTable, User = User)
-
-manager.add_command("shell", Shell(make_context=make_shell_context))
-
-
-class NameForm(FlaskForm):
-    name = StringField(
-            '请输入城市中文名称，选择公／英制后，点击查询。',
-            validators=[Required()])
-    unit = RadioField('unit',
-                      choices=[('c','公制:℃ 摄氏度'),('f','英制:℉ 华氏度')],
-                      default = 'c')
-    submit = SubmitField('查 询')
-
-def getUnit():
-    form = NameForm()
-    if form.unit.data == 'f':
-        unit_list = ['f','℉','mph']
-    else:
-        unit_list = ['c','℃','km/h']
-    return unit_list
-
-def ipCity():
-    ip = socket.gethostbyname(socket.getfqdn())
-    cityUrl = 'http://ip.taobao.com/service/getIpInfo.php?ip=' + ip
-    cityResult = requests.get(cityUrl)
-    city = cityResult.json()['data']
-    cityList = [city['region'] + city['city'],ip]
-    return cityList
-
-def validateInput(unit,userInput):
-    '''Validate the input text effectively'''
-    nowInfo = NowTable.query.filter_by(location = userInput).filter_by(unit = unit).first()
-    if nowInfo is None:
-        r = wAPIT.fetchWeatherThink(unit,userInput).nowDict()
-        print(r)
-        if r['status'] != '200':
-            flash('因网络问题，您查询的结果走丢了！')
-            return False
-        else:
-            insertCityTable(userInput)
-            insertNowTable(unit,userInput)
-            insertLifeTable(unit,userInput)
-            return True
-    else:
-        return True
-
-@app.route('/', methods=['GET', 'POST'])
+@main.route('/', methods=['GET', 'POST'])
 def index():
     form = NameForm()
+    session_id = request.cookies.get('session')
     if form.validate_on_submit():
-        session['ipText']  =  ipCity()
         userInput = form.name.data.strip()
-        if re.match(u'([\u4e00-\u9fff]+)',userInput):
-            unit_list = getUnit()
-            if validateInput(unit_list[0],userInput) is True:
-                now = NowTable.query.filter_by(location=userInput).\
-                    filter_by(unit=unit_list[0]).\
-                    order_by(db.desc(NowTable.queryTime)).\
-                    first()
+        unit = form.unit.data
+        try:
+            if re.match(u'([\u4e00-\u9fff]+)',userInput):
+                if form.nowSubmit.data:
+                    nowModel = NowModel(session_id,userInput,unit) #获取城市实例
+                    nowModel.save() #检索数据库信息，根据判断结果更新数据
+                    now = nowModel.getBasic()
+                    lifeModel = nowModel.getLife(userInput)
+                    life = nowModel.processLife(lifeModel)
 
-                life = LifeTable.query.\
-                    filter_by(location=userInput).\
-                    first()
+                    return render_template('index.html', form=form,
+                                            now=now,life=life)
 
-                session['name'] = now.location
+                elif form.dailySubmit.data:
 
-                if now.unit == 'c':
-                    tUnit = '℃'
-                else:
-                    tUnit = '℉'
-                session['nowText'] = \
-                        (" {}  温度:  {}  {}".format(now.text,now.temperature,tUnit))
+                    dailyModel = DailyModel(userInput,unit)
+                    dailyModel.save()
+                    daily = dailyModel.get()
 
-                session['lifeText'] = \
-                        ("洗车: {};     穿衣: {};     感冒: {};      运动: {};     旅行: {};     紫外线: {}" .\
-                            format(life.car_washing,life.dressing,life.flu,life.sport,life.travel,life.uv))
+                    return render_template('index.html', form=form,daily=daily)
 
-                session['nowImg'] = ("<img src= \"/static/{}.png \" />".format(now.code))
+            else:
+                flash('请输入城市中文名称！')
+                return render_template('index.html', form=form)
 
-                form.name.data = ''
-
-                return render_template('index.html', form=form,
-                                        ipText = session.get('ipText'),
-                                        name = session.get('name'),
-                                        nowImg = session.get('nowImg'),
-                                        nowText = session.get('nowText'),
-                                        lifeText = session.get('lifeText'))
-            return render_template('index.html', form=form)
-        else:
-            flash('请输入城市中文名称！')
+        except Exception as e:
+            flash('您找的{}走丢了！请输入正确城市中文名称！'.format(userInput))
             return render_template('index.html', form=form)
 
     return render_template('index.html', form=form)
 
-@app.route('/help.html')
+@main.route('/history.html')
+def history():
+    session_id = request.cookies.get('session')
+    historyModel = HistoryModel(session_id)
+    historyRecord = historyModel.get()
+    history = historyModel.processHistory(historyRecord)
+    if history:
+        print(history)
+        return render_template('history.html',history=history)
+    else:
+        flash('无记录！')
+        return render_template('history.htme')
+
+@main.route('/help.html')
 def help():
-    text = os.path.join(textdir, 'README.md')
-    session['help'] = wAPIT.getText(text)
+    fileName = os.path.join(textdir, 'README.md')
+    with open(fileName,'r',encoding = "utf8") as file:
+        session['help'] = file.read()
     return render_template('help.html',Text = session.get('help'))
 
-@app.route('/history.html')
-def history():
-    # _your_list=[]
-    # userList = ipCity()
-    # name = userList[0]
-    # your = NowTable.query.filter_by(user_name=name).all()
-    # for r in your:
-    #     yourText = ("{}天气： {}  温度:  {}<br/>".\
-    #             format(r.location,r.text,r.temperature))
-    # session['youtText'] = ' '.join(_your_list)
+@main.route('/modify.html', methods=['GET', 'POST'])
+def modify():
+    form = ModifyForm()
+    session_id = request.cookies.get('session')
+    if form.validate_on_submit():
+        location = form.location.data.strip()
+        unit = form.unit.data
+        nowModel = NowModel(session_id,location,unit)
+        now = nowModel.getBasic()
+        if now:
+            nowText = form.text.data
+            if nowText != '':
+                nowModel.midofy('text',nowText)
 
-    _history_List=[]
-    now = NowTable.query.all()
-    for r in now:
-        if r.unit == 'c':
-            tUnit = '℃'
+            temperatureText = form.temperature.data
+            if temperatureText != '':
+                nowModel.midofy('temperature',temperatureText)
+
+            codeInt = form.code.data
+            if codeInt is not None:
+                nowModel.midofy('code',codeInt)
+
+            flash('修改成功，请再次查询')
+            return render_template('modify.html',form=form,
+                                    now=now,alert = False)
         else:
-            tUnit = '℉'
-        text = ("{}天气： {}  温度:  {}{}  天气代码：{} <br/>".\
-                format(r.location,r.text,r.temperature,tUnit,r.code))
-        _history_List.append(text)
+            flash('您好像没搜过这个城市！请您回到主页先找找看，如果有错误欢迎再来！')
+            return render_template('modify.html',form=form,alert = True)
+    else:
+        return render_template('modify.html',form=form)
 
-    session['historyText'] = ' '.join(_history_List)
-
-
-    return render_template('history.html',
-                           historyText = session.get('historyText')
-                           ) #yourText = session.get('yourtText'),
-
-@app.errorhandler(404)
+@main.errorhandler(404)
 def page_not_found(e):
     return render_template('404.html'), 404
 
-@app.errorhandler(500)
+@main.errorhandler(500)
 def internal_server_error(e):
     return render_template('500.html'), 500
 
-class InfoForm(FlaskForm):
-    location = StringField(
-            '请输入城市中文名称：',
-            validators=[Required()])
-    text = StringField(
-            '请输入天气情况：(例如：\'晴\'、\'多云\'、\'阴\'、\'小雨\'、\'大雪\'等)',
-            validators=[AnyOf(values=['晴','多云','阴','小雨','大雨',
-                                      '中雨','大雪','小雪','中雪','雾'
-                                      ], message='输入错误，请按提示输入'),Optional()])
-    temperature = StringField(
-            '请输入温度：',validators=[Optional()])
 
-    # unit = RadioField('unit',
-    #                   choices=[('c','公制:℃ 摄氏度'),('f','英制:℉ 华氏度')],
-    #                   default = 'c')
-
-    code = IntegerField('请输入气象代码：(范围0-38的整数)',
-                       validators=[NumberRange(
-                               min=0,max=38,message = '输入错误，请按提示输入'),
-                       Optional()]
-                       ) #NumberRange(min=0,max=38),
-
-    submit = SubmitField('提交更正')
-
-
-
-@app.route('/text.html', methods=['GET', 'POST'])
-def modify():
-    form = InfoForm()
-    if form.validate_on_submit():
-        location = form.location.data.strip()
-
-        nowText = form.text.data
-        if nowText != '':
-            updataNowTableText(location,nowText)
-
-        temperatureText = form.temperature.data
-        if temperatureText != '':
-            updataNowTableT(location,temperatureText)
-
-        codeInt = form.code.data
-        if codeInt is not None:
-            updataNowTableC(location,codeInt)
-
-        flash('修改成功，请再次查询')
-        C = NowTable.query.filter_by(location = location).filter_by(unit = 'c').first()
-        F = NowTable.query.filter_by(location = location).filter_by(unit = 'f').first()
-        if C is not None:
-            session['textC'] = ("公制数据：{}天气： {}  温度:  {}  天气代码：{} <br/>".\
-                    format(C.location,C.text,C.temperature,C.code))
-        if F is not None:
-            session['textF'] = ("英制数据：{}天气： {}  温度:  {}  天气代码：{} <br/>".\
-                    format(F.location,F.text,F.temperature,F.code))
-        return render_template('text.html', form=form,
-                               textC = session.get('textC'),
-                               textF = session.get('textF'))
-
-    return render_template('text.html', form=form)
-
-
-if __name__ == '__main__':
-
-    db.drop_all()
-    db.create_all()
-    manager.run()
 
