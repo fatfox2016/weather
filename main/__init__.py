@@ -46,6 +46,6 @@ app.register_blueprint(main)
 #             db.session.commit()
 
 #创建数据库
-db.drop_all()
+
 db.create_all()
 # loadDescription()

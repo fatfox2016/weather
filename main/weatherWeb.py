@@ -55,7 +55,7 @@ def history():
         return render_template('history.html',history=history)
     else:
         flash('无记录！')
-        return render_template('history.htme')
+        return render_template('history.html')
 
 @main.route('/help.html')
 def help():
